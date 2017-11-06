@@ -2,10 +2,11 @@ import tensorflow as tf
 import cv2
 import numpy as np
 import sys
-from detectors import DetectorMobilenetSSD
+from detector import DetectorMobilenetSSD
+import utils
 
 cap = cv2.VideoCapture(sys.argv[1])
-detector = DetectorMobilenetSSD("zoo/head10.pb")
+detector = DetectorMobilenetSSD("zoo/head11.pb")
 
 while True:
     running, image = cap.read()
@@ -15,7 +16,6 @@ while True:
 
     (boxes, scores, classes, num) = detector.detect(image)
     (h, w) = image.shape[:2]
-
     for i in range(int(num[0])):
         # print(boxes[0][i], scores[0][i], classes[0][i])
         if scores[0][i] < 0.3:
