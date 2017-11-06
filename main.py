@@ -4,8 +4,9 @@ import cv2
 import numpy as np
 import datetime
 
-from detectors import DetectorMobilenetSSD
+from detector import DetectorMobilenetSSD
 from stream import VideoStream
+from processor import OccupancyProcessor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", help="Configuration file location")
@@ -31,17 +32,26 @@ def main():
     else:
         stream_urls = [ args.stream ]
 
-    for s in stream_urls:
-        stream = VideoStream(s, s)
-        streams.append(stream)
+    for url in stream_urls:
+        stream = VideoStream(url, url) # use URL as stream name for now
+        streams.append((stream, [OccupancyProcessor(args.confidence)]))
 
     # Main processing loop
     while True:
-        for stream in streams:
+        for a, (stream, processors) in enumerate(streams):
             _, image = stream.read()
+            (h, w) = image.shape[:2]
             (boxes, scores, classes, num) = detector.detect(image)
 
-            (h, w) = image.shape[:2]
+            for proc in processors:
+                proc.update((boxes, scores, classes, num))
+
+            print(stream.seconds_elapsed)
+            if stream.seconds_elapsed >= config['report_interval']:
+                for proc in processors:
+                    proc.reset()
+                stream.seconds_elapsed = 0
+                streams[a] = (stream, processors)
 
             for i in range(int(num[0])):
                 if scores[0][i] < args.confidence:

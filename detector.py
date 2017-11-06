@@ -3,33 +3,14 @@ import json
 import numpy as np
 import tensorflow as tf
 
-class DetectorMobileNetSSDCaffe:
-    def __init__(self, proto, model):
-        self.net = cv2.dnn.readNetFromCaffe(proto, model)
-
-
-    def detect(self, image):
-        blob = cv2.dnn.blobFromImage(cv2.resize(image, (255,255)), 0.007843,
-            (255, 255), 127.5)
-
-        net.setInput(blob)
-        detections = net.forward()
-
-        for i in np.arange(0, detections.shape[2]):
-            confidence = detections[0, 0, i, 2]
-            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-            class_id = int(detections[0, 0, i, 1])
-
 class DetectorMobilenetSSD:
     def __init__(self, frozen_path):
         self.graph = self.loadGraph(frozen_path)
         self.sess = tf.Session(graph=self.graph)
-        # Definite input and output Tensors for detection_graph
+
         self.image_tensor = self.graph.get_tensor_by_name('image_tensor:0')
-        # Each box represents a part of the image where a particular object was detected.
+
         self.detection_boxes = self.graph.get_tensor_by_name('detection_boxes:0')
-        # Each score represent how level of confidence for each of the objects.
-        # Score is shown on the result image, together with the class label.
         self.detection_scores = self.graph.get_tensor_by_name('detection_scores:0')
         self.detection_classes = self.graph.get_tensor_by_name('detection_classes:0')
         self.num_detections = self.graph.get_tensor_by_name('num_detections:0')
