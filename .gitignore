@@ -1,3 +1,5 @@
 zoo
 config.json
 __pycache__
+points
+occupancy

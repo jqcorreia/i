@@ -4,12 +4,14 @@ import numpy as np
 import sys
 from detector import DetectorMobilenetSSD
 import utils
+import datetime
 
 cap = cv2.VideoCapture(sys.argv[1])
-detector = DetectorMobilenetSSD("zoo/nas.pb")
+detector = DetectorMobilenetSSD("/home/jqcorreia/opt.pb")
 
 max_count = 0
 while True:
+    dt = datetime.datetime.now()
     running, image = cap.read()
 
     if running == False:
@@ -19,7 +21,7 @@ while True:
     (h, w) = image.shape[:2]
     count = 0
     for i in range(int(num[0])):
-        if scores[0][i] < 0.5 or classes[0][i] != 1.0:
+        if scores[0][i] < 0.2 or classes[0][i] != 1.0:
             continue
         count +=1
         box = boxes[0][i] * np.array([h, w, h, w])
@@ -32,5 +34,6 @@ while True:
     if count > max_count:
         print(count)
         max_count = count
+    print(datetime.datetime.now() - dt)
     cv2.imshow("Output", image)
     cv2.waitKey(1)

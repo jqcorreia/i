@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+    <div id="heatmap" style="width: 1280px; height: 720px; background-image: url(image-001.jpg)">
+    </div>
+
+    <script type="text/javascript" src="node_modules/heatmap.js/build/heatmap.js"></script>
+    <script type="text/javascript" src="points02.csv"></script>
+    <script>
+        res = {}
+        console.log(document.querySelector('#heatmap'))
+        var heatmapInstance = h337.create({
+            // only container is required, the rest will be defaults
+            container: document.querySelector('#heatmap'),
+            radius: 60
+        });
+        foo.forEach(function(v){
+            v['data'].forEach(function(point){
+                if(res[point] == undefined) {
+                    res[point] = { x: point[0], y: point[1], value: 1}
+                } else {
+                    v = res[point].value
+                    res[point] = { x: point[0], y: point[1], value: v + 1}
+                }
+            })
+        });
+        heatmapInstance.addData(Object.values(res))
+        console.log(res)
+    </script>
+</body>
+</html>

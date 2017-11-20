@@ -30,21 +30,16 @@ args = vars(ap.parse_args())
 W = 640
 H = 480
 
-TAU = 20
-
-visits = defaultdict(int)
-XI, YI = np.meshgrid(np.arange(0,W), np.arange(0,H))
+TAU = 200
 
 def main():
     j = 1
     people = {}
     passages = 0
     cap = cv2.VideoCapture(args["stream"])
-    cap.set(cv2.CAP_PROP_FPS, 1)
     running = True
 
-    # detector = DetectorMobilenetSSD("zoo/mobilenet.pb")
-    detector = DetectorMobilenetSSD("/home/jqcorreia/opt.pb")
+    detector = DetectorMobilenetSSD("zoo/mobilenet.pb")
 
     cframe = 0
     j = 0
@@ -75,6 +70,10 @@ def main():
         # detections = net.forward()
         (boxes, scores, classes, num) = detector.detect(image)
 
+        for pid, (tracker, prect) in people.items():
+            _, prect = tracker.update(orig)
+            people[pid] = (tracker, prect)
+
         # loop over the detections
         for i in range(int(num[0])):
             confidence = scores[0][i]
@@ -85,58 +84,30 @@ def main():
                 (startY, startX, endY, endX) = box.astype("int")
                 rect = (startX, startY, endX - startX, endY - startY)
                 center = rect_center(rect)
-                center_base = rect_center_base(rect)
-                visits[(center[0],center[1])] += 1
-                # center = (center[0], int(center[1] * 1.2))
                 cv2.rectangle(orig, (startX, startY), (endX, endY), (0,255,255), 2)
 
-                proposedPerson = -1
-                closestDist = 10000
+                found = False
+                for pid, (tracker, prect) in people.items():
+                    if rect_contains(prect, center):
+                        found = True
 
-                for pid, p in people.items():
-                    overlaps = rect_contains(p['rect'], center)
-                    dist = point_dist(p["points"][-1], center)
-                    if overlaps:
-                        proposedPerson = pid
-                    # if dist < closestDist:
-                    #     proposedPerson = pid
-                    #     closestDist = dist
-
-                if proposedPerson != -1:
-                    pid = proposedPerson
-                    # print("found", pid, histCorrelation)
-                    people[pid]["rect"] = rect
-                    points = people[pid]["points"]
-                    points.append(center)
-                    people[pid]["points"] = points
-                    people[pid]["last_seen"] = datetime.datetime.now()
-                else:
+                if not found:
+                    tracker = cv2.TrackerKCF_create()
+                    tracker.init(image, rect)
+                    prect = rect
                     j += 1
-                    # print("new person", j)
-                    people[j] = { "rect" : rect, "points" : [center], "last_seen" : datetime.datetime.now(), "passed" : False}
+                    people[j] = (tracker, rect)
 
         cv2.line(orig, line[0], line[1], (255,0,0))
 
-        for pid, p in people.items():
-            dt = (datetime.datetime.now() - p["last_seen"])
-            if len(p['points']) > 1:
-                if segment_intersect((line[0], line[1]), (p["points"][-1], p["points"][-2])) != None and not p["passed"]:
-                    passages += 1
-                    # people[pid]["passed"] = True
-                    print("Number of passages", passages)
+        for pid, (tracker, prect) in people.items():
+            (x, y, w, h) = tuple(map(int, prect))
 
-            if dt.total_seconds() * 1000 > 2000:
-                print("Remove", pid)
-                to_remove.add(pid)
-
-            rect = p["rect"]
-            points = p["points"]
-            (x, y, w, h) = rect
             cv2.rectangle(orig, (x, y), (x + w, y + h), (255, 0, 0), 2)
             cv2.putText(orig, str(pid), (x+int(w/2), y + int(h / 2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
-            for x in range(0,len(points)-1):
-                cv2.circle(orig, points[x], 2, (0, 0, 255))
-                cv2.line(orig, points[x], points[x+1], (0, 255, 0))
+            # for x in range(0,len(points)-1):
+            #     cv2.circle(orig, points[x], 2, (0, 0, 255))
+            #     cv2.line(orig, points[x], points[x+1], (0, 255, 0))
 
         for pid in to_remove:
             del people[pid]
